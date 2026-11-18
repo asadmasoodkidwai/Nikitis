@@ -1,6 +1,6 @@
 # Model Kombat
 
-An AI agent for the Street Fighter II (SNES) gamebot competition. It plays through the BizHawk emulator using the competition's Python API.
+An AI agent for Model Combact (Street Fighter II (SNES) gamebot competition). It plays through the BizHawk emulator using the competition's Python API.
 
 This repo contains my training scripts, frame-processing tools, and Champion Edition reference data, built on top of the competition starter code (`gamebot-competition-master`).
 
