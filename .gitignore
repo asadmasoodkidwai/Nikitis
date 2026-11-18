@@ -1,0 +1,15 @@
+SF2_CE_DATA
+frames_CE
+experience.jsonl
+video_features_ce
+.vs/
+*.zip
+*.sfc
+*.smc
+*.state
+
+.vs/
+*.zip
+*.sfc
+*.smc
+*.state

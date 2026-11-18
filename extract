@@ -1,0 +1,51 @@
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import cv2
+
+root = Path(__file__).resolve().parent
+df = pd.read_csv(root / "video_features_ce" / "frame_features.csv")
+rows = []
+
+for i, row in df.iterrows():
+    path = root / Path(str(row["frame_path"]))
+    im = cv2.imread(str(path))
+    if im is None:
+        continue
+
+    h, w = im.shape[:2]
+
+    # HUD regions: approximate top-left and top-right health bars.
+    top = im[:int(h * 0.12), :, :]
+    hsv_top = cv2.cvtColor(top, cv2.COLOR_BGR2HSV)
+    # Yellow/green and red health bar pixels; ratios only, not health labels.
+    green = cv2.inRange(hsv_top, np.array([20, 60, 60]), np.array([100, 255, 255]))
+    red1 = cv2.inRange(hsv_top, np.array([0, 70, 70]), np.array([12, 255, 255]))
+    red2 = cv2.inRange(hsv_top, np.array([168, 70, 70]), np.array([180, 255, 255]))
+    health_color_ratio = float(np.count_nonzero(green | red1 | red2)) / max(1, top.shape[0] * top.shape[1])
+
+    # Ignore the HUD and floor; use edge-rich lower playfield regions as
+    # coarse motion/foreground signals, not definitive character detections.
+    play = im[int(h * 0.15):int(h * 0.90), :, :]
+    gray = cv2.cvtColor(play, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 80, 160)
+    col_energy = edges.sum(axis=0).astype(np.float32)
+    # Split screen halves to keep candidate locations separate.
+    left_mid = int(w * 0.5)
+    left_x = int(np.argmax(col_energy[:left_mid]))
+    right_x = left_mid + int(np.argmax(col_energy[left_mid:]))
+
+    rows.append({
+        "frame_path": str(row["frame_path"]),
+        "frame_index": int(row["frame_index"]),
+        "hud_color_ratio": health_color_ratio,
+        "left_edge_x": left_x / w,
+        "right_edge_x": right_x / w,
+        "edge_density": float(edges.mean()),
+    })
+
+out = root / "video_features_ce" / "visual_features.csv"
+pd.DataFrame(rows).to_csv(out, index=False)
+print("Saved:", out)
+print("Rows:", len(rows))
+print(pd.DataFrame(rows).describe().round(4).to_string())
